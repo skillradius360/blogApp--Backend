@@ -27,7 +27,7 @@ const signUp= asyncHandler(async (req,res)=>{
         throw new apiError(400,"avatar not uploaded or found")
     }
 
-    const coverImage = req.files?.coverImage[0]?.path
+    const coverImage = req.files?.backgroundImage[0]?.path
     if(!coverImage){
         throw new apiError(400,"coverImage not uploaded or found")
     }
@@ -46,7 +46,7 @@ const signUp= asyncHandler(async (req,res)=>{
        username: username,
         password:password,
         avatar:uploadedAvatarUrl?.url,
-        coverImage:coverImage?.url || "",
+        backgroundImage:coverImage?.url || "",
         email:email,
         fullname:fullname
 
@@ -183,6 +183,47 @@ const deleteUser= asyncHandler(async (req,res)=>{
     }
     res.status(200).json(new apiResponse(200,[],"deleted user success"))
 })
+
+const updateUserImages = asyncHandler(async(req,res)=>{
+    const avatar = req.files?.avatar[0]?.path
+    if(!avatar){
+        throw new apiError(400,"No avatar files recieved to be uploaded")
+    }
+    const coverImage = req.files?.backgroundImage[0]?.path
+    if(!coverImage){
+        throw new apiError(400,"no cover image found")
+    }
+
+    const avatarCloudUploadURL = await cloudUploader(avatar)
+        if(!avatarCloudUploadURL){
+        throw new apiError(400,"no avatar image recieved")
+    }
+    const coverCloudUploadURL = await cloudUploader(coverImage)
+    if(!coverCloudUploadURL){
+        throw new apiError(400,"no cover image recieved")
+    }
+
+    const updatedUser =await  User.findByIdAndUpdate(req.user._id,
+        {
+            $set:{
+                avatar:avatarCloudUploadURL.url,
+                coverImage:coverCloudUploadURL.url || ""
+            }
+        },{
+            new:true
+        }
+    ).select("-__v -refreshToken")
+
+    if(!updatedUser){
+        throw new apiError(400,"cover and avatar update failed")
+    }
+
+
+    res.status(200)
+    .json(new apiResponse(200,updatedUser,"The users a re updated their profile successfully"))
+})
 // const deleteUserById
 // updateUserProfile
-export {signUp,login,logOut,refreshCookie,deleteUser}
+export {signUp,login,logOut,refreshCookie,deleteUser,
+    updateUserImages
+}

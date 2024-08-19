@@ -7,7 +7,7 @@ const checkJWT= async function(req,res,next){
 
 try {
         if(!accessToken){
-            throw new apiError(400,"no cookies found")
+            throw new apiError(400,"please log in first to get cookies")
         }
     
         const accessTokenOk = await jwt.verify(accessToken,process.env.ACCESS_TOKEN_SECRET)
@@ -22,7 +22,8 @@ try {
              req.user = user
              next()
 } catch (error) {
-    console.log("there has been error while logging out")
+    console.log("not logged in")
+    next()
 }
 
 }
