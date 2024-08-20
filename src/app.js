@@ -19,6 +19,10 @@ app.use(cors({
 }))
 
 import { userRouter } from "./routes/user.route.js"
+import { blogRouter } from "./routes/blog.route.js"
+
+
 app.use("/users",userRouter)
+app.use("/blog",blogRouter)
 
 export {app}
