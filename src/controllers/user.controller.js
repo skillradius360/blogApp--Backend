@@ -45,7 +45,7 @@ const signUp= asyncHandler(async (req,res)=>{
        username: username,
         password:password,
         avatar:uploadedAvatarUrl?.url,
-        backgroundImage:coverImage?.url || "",
+        backgroundImage:uploadedCoverImageUrl?.url || "",
         email:email,
         fullname:fullname
 

@@ -24,10 +24,12 @@ const blogSchema = new mongoose.Schema({
     genre:{
         type:String,
         required:true
-    }
+    },
+
 },{
     timestamp:true
 })
 
 blogSchema.plugin(mongooseAggregatePaginate)
+
 export const Blog= mongoose.model("Blog",blogSchema)

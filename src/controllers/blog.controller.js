@@ -4,12 +4,12 @@ import { apiResponse } from "../utils/apiResponse.js"
 import { User } from "../models/user.model.js"
 import { Blog } from "../models/blog.model.js"
 import { isValidObjectId } from "mongoose"
-
+import {cloudUploader} from "../utils/cloudinary.js"
 
 const addContentAndBackground = asyncHandler(async (req, res) => {
     const { content, heading, genre } = req.body
-
-    if (![content, heading, genre].some((data) => data.trim() === "")) {
+    console.log(content, heading, genre)
+    if ([content, heading, genre].some((data) => data.trim() === "")) {
         throw new apiError(400, "content or something not found")
     }
 
@@ -17,20 +17,26 @@ const addContentAndBackground = asyncHandler(async (req, res) => {
         heading: heading
     })
 
-    if (!ifHeadingExists) {
+    if (ifHeadingExists) {
         throw new apiError(400, "Same post with same heading exists")
     }
 
-    const blogImage = req.file?.headerImages[0]?.path
+    console.log(req.file)
+    const blogImage = req.file?.path
     if (!blogImage) {
         throw new apiError(400, "Blog image not found")
+    }
+
+    const uploadCloudBlogImg= await cloudUploader(blogImage)
+    if (!uploadCloudBlogImg) {
+        throw new apiError(400, "Blog image failed while being uploaded ")
     }
 
     const blogEntry = await Blog.create({
         content,
         heading,
         genre,
-        headerImages: blogImage,
+        headerImages: uploadCloudBlogImg?.url || "",
         owner: req.user._id,
     })
 
@@ -47,7 +53,7 @@ const addContentAndBackground = asyncHandler(async (req, res) => {
 
 
 const findAllBlogs = asyncHandler(async (req, res) => {
-    const { genre, username, quantity, page } = req.query
+    const { username, quantity, page } = req.query
 
     if (!(genre || username)) {
         throw new apiError(400, "username or genre search query needed atleast")
@@ -154,15 +160,93 @@ const deleteBlog= asyncHandler(async (req,res)=>{
 const updateImages = asyncHandler(async (req,res)=>{
     const {blogId}= req.params
 
-    if(!isValidObjectId(blogId)){
-        
+    const blogObj= await Blog.findById(blogId)
+    if(!blogObj){
+        throw new apiError(400,"blog not found")
     }
+
+    if(!isValidObjectId(blogId)){
+        throw new apiError(400,"Blog Id not valid!")
+    }
+
+    const headImages = req.file?.headerImages[0]?.path
+    if(!headImages){
+        throw new apiError(400,"no header images recieved!")
+    }
+
+    const isUploaded= await cloudUploader(headImages)
+    if(!isUploaded){
+        throw new apiError(400,"header-Images not uploaded!")
+    }
+
+    const isSaved= blogObj.headImages=isUploaded?.url
+    blogObj.save({validateBeforeSave:true})
+
+    if(!isSaved){
+        throw new apiError(400,"some problem occured while updating the photo")
+    }
+
+    res.status(200).json(new apiResponse(200,isSaved,"updated heading images success!"))
+})
+
+
+const findBlogsByGenre= asyncHandler(async(req,res)=>{
+    const {genre} = req.params
+
+    if(!genre){
+        throw new apiError(400," genre fetch statement  invalid ")
+    }
+
+    const fetchedResult = await Blog.aggregate([
+        {
+          $match: {
+            genre:"funny"
+          }
+        },
+      
+        {
+          $lookup: {
+            from: "users",
+            localField: "owner",
+            foreignField: "_id",
+            as:"userData"
+          }
+        },
+      ])
+
+
+
+      if(!(Array.isArray(fetchedResult) || fetchedResult.length>0)){
+        throw new apiError(400, "api fetch failure for specific genre")
+      }
+      res.status(200).json(new apiResponse(200,fetchedResult,"genre based fetched succecssfully"))
+})
+
+const findBlogsById= asyncHandler(async (req,res)=>{
+    const {blogId} = req.params
+
+    if(!req.user._id){
+        throw new apiError(400,"login first")
+    }
+
+    if(!blogId){
+        throw new apiError(400,"no blogId found")
+    }
+    const blogData =await Blog.findById(blogId)
+
+    if(!blogData){
+        throw new apiError(400,"no blogData")
+    }
+    res.status(200).json(new apiResponse(200,blogData,"blog data fetched successfully"))
+
 })
 export {
     addContentAndBackground,
     findAllBlogs,updateBlog,
     deleteBlog,
-    updateImages
+    updateImages,
+    findBlogsByGenre,
+    findBlogsById
 }
 
 

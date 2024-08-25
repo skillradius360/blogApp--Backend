@@ -20,9 +20,10 @@ app.use(cors({
 
 import { userRouter } from "./routes/user.route.js"
 import { blogRouter } from "./routes/blog.route.js"
-
+import { likeRouter } from "./routes/like.routes.js"
 
 app.use("/users",userRouter)
 app.use("/blog",blogRouter)
+app.use("/likes",likeRouter)
 
 export {app}
