@@ -25,4 +25,72 @@ const toggleLikes = asyncHandler(async (req,res)=>{
     return res.status(200).json(new apiResponse(200,isBlogValid,"Liked successfully!"))
 })
 
-export {toggleLikes}
+const getAllLikedVlogs= asyncHandler(async (req,res)=>{
+
+    if(!req.user._id){
+        throw new apiError(400,"please login brfore accessing liked Videos")
+    }
+    const filterLiked = await User.aggregate([
+        {
+          $match: {
+            _id: mongoose.Types.ObjectId(req.user._id),
+          },
+        },
+        {
+          $lookup: {
+            from: "likes",
+            localField: "_id",
+            foreignField: "likedBy",
+            as: "vlogsLiked",
+            pipeline: [
+             
+              {
+                $lookup: {
+                  from: "blogs",
+                  foreignField: "_id",
+                  localField: "likedTo",
+                  as: "vlogData",
+                       
+                },
+              },
+            ],
+          },
+        },
+       {
+                $project:{
+                  vlogsLiked:1
+                }
+              },
+      ])
+    if(filterLiked?.length<=0){
+        throw new apiError(401,"no liked blogs detected!")
+    }
+
+    res.status(200).json(new apiResponse(200,filterLiked[0],"vlogs fetched success"))
+})
+
+const getAllLikers= asyncHandler(async (req,res)=>{
+        const result = User.aggregate([
+            {
+                $match:{_id:mongoose.Types.ObjectId(req.user._id)}
+            },
+
+         {   $lookup:{
+                from:"blogs",
+                localField:"_id",
+                foreignField:"owner",
+                as:"allUserBlogs",
+                pipeline:[
+                    {
+                        $lookup:{
+                            from:"likes",
+                            localField:"_id",
+                            foreignField:"likedTo"
+                        }
+                    }
+                ]
+            }
+        }
+        ])
+})
+export {toggleLikes,getAllLikedVlogs}
