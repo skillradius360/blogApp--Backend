@@ -20,8 +20,6 @@ const addContentAndBackground = asyncHandler(async (req, res) => {
     if (ifHeadingExists) {
         throw new apiError(400, "Same post with same heading exists")
     }
-
-    console.log(req.file)
     const blogImage = req.file?.path
     if (!blogImage) {
         throw new apiError(400, "Blog image not found")
@@ -108,11 +106,11 @@ const findAllBlogs = asyncHandler(async (req, res) => {
     if (!trending) {
         throw new apiError(404, "Trending data fetching failure")
     }
-
+    const allDataForPage = allBlogs.slice((page*10) -9, page*10)
     return res.status(200).json(new apiResponse(200,
         {
             trendingData: trending,
-            allBlogs: allBlogs,
+            allDataAcpage:allDataForPage
         }))
 
 })

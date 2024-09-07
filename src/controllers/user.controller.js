@@ -221,8 +221,55 @@ const updateUserImages = asyncHandler(async(req,res)=>{
     res.status(200)
     .json(new apiResponse(200,updatedUser,"The users a re updated their profile successfully"))
 })
-// const deleteUserById
-// updateUserProfile
+
+
+const deleteUserById= asyncHandler(async(req,res)=>{
+    const userId = req.params
+
+    if(!isValidObjectId(userId)) throw new apiError(400,"Enter a valid user Id")
+
+    const isuserValid= await User.findById(userId)
+
+    if(!isuserValid) throw new apiError(401,"user not found !")
+    
+    const deletedUser = await User.deleteUserById(isuserValid._id)
+
+    if(!deletedUser) throw new apiError(400,"user deletion unsuccessfull")
+
+    res.status(200).json(new apiResponse(200,deletedUser,"User deleted successfully"))
+
+
+})
+const updateUserProfile = asyncHandler(async(req,res)=>{
+    const userId= req.user._id
+    const {username,fullName,email} = req.body
+
+        if([username,fullName,email].some((data)=>data.trim==="")){
+            throw new apiError(400,"please enter username or fullname or Email correctly")
+        }
+
+    if(!isValidObjectId(userId)){
+        throw new apiError(400,"invalid Id or not logged in")}
+
+
+    const userExists = await User.findByIdAndUpdate(userId,
+        {
+            $set:{
+                username,
+                password,
+                email
+            },
+            
+        },
+        {new:true}
+    )
+    
+    if(!userExists){
+        throw new apiError(400,"problem finding or updating the user !")
+    }
+
+    req.status(200).json(new apiResponse(200,userExists,"user updated successfully!"))
+})
 export {signUp,login,logOut,refreshCookie,deleteUser,
-    updateUserImages
+    updateUserImages,deleteUserById
 }
